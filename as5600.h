@@ -1,0 +1,64 @@
+/*
+ * as5600.h
+ *
+ *  Created on: Aug 22, 2021
+ *      Author: Pragun
+ */
+
+#ifndef SRC_AS5600_H_
+#define SRC_AS5600_H_
+
+#include "i2c.h"
+#include "i2c_bus.h"
+#include "i2c_device.h"
+
+#define AS5600_Address 0b0110110
+#define CHECK_BIT(a,i) ((a & (0b1 << i)) != 0)
+
+class AS5600_Device : public I2C_Device {
+public:
+	enum Magnet_Status{
+			Magnet_OK,
+			Magnet_High,
+			Magnet_Low,
+			No_Magnet,
+		};
+
+	enum Magnet_Status_BitPos{
+		Magnet_Bit_MH = 3,
+		Magnet_Bit_ML = 4,
+		Magnet_Bit_MD = 5,
+	};
+
+	AS5600_Device(I2C_Bus* i2c_bus, bool flip_direction):
+		I2C_Device(i2c_bus, AS5600_Address),
+		initialized(false),
+		zero_position(0),
+		flip_direction(flip_direction),
+		init_magnet_status(No_Magnet)
+		{}
+
+	int16_t read_angle();
+	Magnet_Status magnet_status();
+	void init_and_zero();
+
+	Magnet_Status get_initial_magnet_status(){
+		return this->init_magnet_status;
+	}
+
+private:
+	bool initialized;
+	int16_t zero_position;
+	bool flip_direction;
+	Magnet_Status init_magnet_status;
+
+	const static uint8_t status_reg = 0x0b;
+	const static uint8_t agc_reg = 0x1a;
+	const static uint8_t magnitude_reg = 0x1b;
+
+	const static uint8_t raw_angle_reg = 0x0c;
+	const static uint8_t angle_reg = 0x0e;
+
+};
+
+#endif /* SRC_AS5600_H_ */
