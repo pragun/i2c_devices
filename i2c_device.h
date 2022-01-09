@@ -51,7 +51,6 @@ public:
 		return this->write_n_then_read_m(&reg,1,rx_buf,1);
 	}
 
-
 private:
 	I2C_Bus *i2c_bus;
 	uint8_t address;

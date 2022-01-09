@@ -9,10 +9,12 @@
 #define SRC_I2C_H_
 
 //#include "pico/stdlib.h"
-#include "pico/binary_info.h"
-#include "hardware/i2c.h"
+//#include "pico/binary_info.h"
+//#include "hardware/i2c.h"
 
-using I2C_Peripheral = i2c_inst_t;
+#include "i2c_interrupt.h"
+
+using I2C_Peripheral = I2C_Interrupt_Master;
 
 enum I2C_Status {
 	I2C_OK,

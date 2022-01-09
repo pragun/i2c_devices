@@ -38,7 +38,10 @@ public:
 		init_magnet_status(No_Magnet)
 		{}
 
+	int16_t read_magnitude();
+	int16_t read_raw_angle();
 	int16_t read_angle();
+	uint8_t read_agc();
 	Magnet_Status magnet_status();
 	void init_and_zero();
 
