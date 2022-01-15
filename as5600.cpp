@@ -6,6 +6,7 @@
  */
 
 #include "as5600.h"
+#include <stdlib.h>
 //#include "printf.h"
 
 inline int16_t sign_extend_12bits(int16_t i){
@@ -72,6 +73,11 @@ int16_t AS5600_Device::read_angle(){
 		else
 			angle = angle - this->zero_position;
 	}
+
+	if( abs(angle-last_angle) > max_change ){
+		_n_erroneous_readings += 1;
+	}
+
 
 #ifdef AS5600_DEBUG
 	printf("Read AS5600 Read Angle. Retval:%d, RX:0x%04x, Angle:%d\r\n",status,raw_angle, angle);

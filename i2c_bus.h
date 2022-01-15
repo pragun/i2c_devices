@@ -27,6 +27,21 @@ public:
 
 class I2C_Bus_Root: public I2C_Bus {
 public:
+	virtual I2C_Status start_transaction() = 0;
+	virtual I2C_Status end_transaction() = 0;
+	I2C_Bus_Root* bus_root(){
+		return this;
+	};
+	virtual I2C_Status write_n_then_read_m(uint8_t address, const uint8_t* tx, size_t txn, uint8_t* rx, size_t rxn, bool with_stop, bool nostop, uint32_t timeout_ms) = 0;
+};
+
+/*
+
+using I2C_Peripheral = uint32_t;
+
+class I2C_Bus_Root_2: public I2C_Bus {
+public:
+	//I2C_Bus_Root();
 	I2C_Bus_Root(I2C_Peripheral *i2c_peripheral): I2C_Bus(),
 		i2c_peripheral(i2c_peripheral){
 	}
@@ -39,17 +54,20 @@ public:
 		return i2c_stop_transaction(this->i2c_peripheral);
 	}
 
-	I2C_Bus_Root* bus_root(){
+	I2C_Bus_Root_2* bus_root(){
 		return this;
 	}
 
 	I2C_Status write_n_then_read_m(uint8_t address, uint8_t* tx, uint8_t txn, uint8_t* rx, uint8_t rxn){
 		//return I2C_OK;
-		return i2c_write_n_then_read_m(this->i2c_peripheral, address, tx, txn, rx, rxn);
+		//return i2c_write_n_then_read_m(this->i2c_peripheral, address, tx, txn, rx, rxn);
+		i2c_peripheral->i2c_write_n_then_read_m();
 	}
 
 private:
 	I2C_Peripheral *i2c_peripheral;
 };
+
+*/
 
 #endif /* SRC_I2C_BUS_H_ */

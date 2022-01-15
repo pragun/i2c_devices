@@ -13,10 +13,11 @@
 
 class I2C_Device{
 public:
-	I2C_Device(I2C_Bus *i2c_bus, uint8_t address):
+	I2C_Device(I2C_Bus *i2c_bus, uint8_t address, uint32_t default_timeout):
 		i2c_bus(i2c_bus),
 		address(address),
-		bus_root(i2c_bus->bus_root())
+		bus_root(i2c_bus->bus_root()),
+		default_timeout(default_timeout)
 	{};
 
 	I2C_Status write_n(){
@@ -28,7 +29,24 @@ public:
 	}
 
 	I2C_Status write_n_then_read_m(uint8_t* tx, uint8_t txn, uint8_t* rx, uint8_t rxn){
-		return this->bus_root->write_n_then_read_m(this->address, tx,txn,rx,rxn);
+		I2C_Status _status = this->bus_root->write_n_then_read_m(this->address,tx,txn,rx,rxn,true,false,default_timeout);
+		switch(_status){
+			case I2C_Error:
+				_n_errors += 1;
+				break;
+
+			case I2C_Timed_Out:
+				_n_timeouts += 1;
+				break;
+
+			case I2C_TX_Abort:
+				_n_aborts += 1;
+				break;
+
+			default:
+				break;
+		}
+		return _status;
 	}
 
 	I2C_Status start_transaction(){
@@ -51,7 +69,12 @@ public:
 		return this->write_n_then_read_m(&reg,1,rx_buf,1);
 	}
 
+	uint32_t _n_errors = 0;
+	uint32_t _n_aborts = 0;
+	uint32_t _n_timeouts = 0;
+
 private:
+	uint32_t default_timeout;
 	I2C_Bus *i2c_bus;
 	uint8_t address;
 	I2C_Bus_Root *bus_root;
