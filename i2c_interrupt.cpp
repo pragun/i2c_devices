@@ -11,13 +11,27 @@ TaskHandle_t* i2c_task_handles[NUM_I2C_PERIPHERALS] = {nullptr,nullptr};
 
 void _handler_i2c0() {
     // Get interrupt status
+	BaseType_t xHigherPriorityTaskWoken;
     irq_set_enabled(I2C1_IRQ, false);
 
     uint32_t status = i2c0->hw->intr_stat;
 
     //i2c0->hw->clr_rd_req;
     if(i2c_task_handles[0] != nullptr){
-        xTaskNotify( *i2c_task_handles[0], 0, eNoAction);
+        //xTaskNotify( *i2c_task_handles[0], 0, eNoAction);
+        xTaskNotifyFromISR( *i2c_task_handles[0], 0, eNoAction, &xHigherPriorityTaskWoken);
+    }
+}
+
+void _handler_i2c1() {
+    // Get interrupt status
+	BaseType_t xHigherPriorityTaskWoken;
+	irq_set_enabled(I2C1_IRQ, false);
+    //uint32_t status = i2c1->hw->intr_stat;
+    //i2c1->hw->clr_rd_req;
+
+    if(i2c_task_handles[1] != nullptr){
+    	xTaskNotifyFromISR( *i2c_task_handles[1], 0, eNoAction, &xHigherPriorityTaskWoken);
     }
 }
 
@@ -27,17 +41,6 @@ I2C_Status I2C_Interrupt_Master::start_transaction(){
 
 I2C_Status I2C_Interrupt_Master::end_transaction(){
 	return I2C_OK;
-}
-
-void _handler_i2c1() {
-    // Get interrupt status
-	irq_set_enabled(I2C1_IRQ, false);
-    uint32_t status = i2c1->hw->intr_stat;
-    //i2c1->hw->clr_rd_req;
-
-    if(i2c_task_handles[1] != nullptr){
-        xTaskNotify( *i2c_task_handles[1], 0, eNoAction);
-    }
 }
 
 static inline void i2c_reset(i2c_inst_t *i2c) {

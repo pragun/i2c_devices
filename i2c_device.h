@@ -51,10 +51,15 @@ public:
 
 	I2C_Status start_transaction(){
 		return this->i2c_bus->start_transaction();
+		transaction_started = true;
 	}
 
 	I2C_Status end_transaction(){
 		return this->i2c_bus->end_transaction();
+		if (transaction_started){
+			_n_transactions += 1;
+		}
+		transaction_started = false;
 	}
 
 	I2C_Bus_Root* get_bus_root(){
@@ -72,12 +77,15 @@ public:
 	uint32_t _n_errors = 0;
 	uint32_t _n_aborts = 0;
 	uint32_t _n_timeouts = 0;
+	uint32_t _n_transactions = 0;
+
 
 private:
 	uint32_t default_timeout;
 	I2C_Bus *i2c_bus;
 	uint8_t address;
 	I2C_Bus_Root *bus_root;
+	bool transaction_started = false;
 };
 
 #endif /* SRC_I2C_DEVICE_H_ */
