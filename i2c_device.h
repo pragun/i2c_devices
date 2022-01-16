@@ -11,6 +11,7 @@
 #include "i2c.h"
 #include "i2c_bus.h"
 
+
 class I2C_Device{
 public:
 	I2C_Device(I2C_Bus *i2c_bus, uint8_t address, uint32_t default_timeout):
@@ -30,36 +31,38 @@ public:
 
 	I2C_Status write_n_then_read_m(uint8_t* tx, uint8_t txn, uint8_t* rx, uint8_t rxn){
 		I2C_Status _status = this->bus_root->write_n_then_read_m(this->address,tx,txn,rx,rxn,true,false,default_timeout);
+
 		switch(_status){
 			case I2C_Error:
-				_n_errors += 1;
+				_n_errors ++;
 				break;
 
 			case I2C_Timed_Out:
-				_n_timeouts += 1;
+				_n_timeouts ++;
 				break;
 
 			case I2C_TX_Abort:
-				_n_aborts += 1;
+				_n_aborts ++;
 				break;
 
 			default:
 				break;
 		}
+
 		return _status;
 	}
 
 	I2C_Status start_transaction(){
-		return this->i2c_bus->start_transaction();
 		transaction_started = true;
+		return this->i2c_bus->start_transaction();
 	}
 
 	I2C_Status end_transaction(){
-		return this->i2c_bus->end_transaction();
 		if (transaction_started){
-			_n_transactions += 1;
+			_n_transactions ++;
 		}
 		transaction_started = false;
+		return this->i2c_bus->end_transaction();
 	}
 
 	I2C_Bus_Root* get_bus_root(){

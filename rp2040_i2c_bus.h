@@ -17,6 +17,7 @@
 
 #include "i2c.h"
 #include "i2c_bus.h"
+#include "i2c_interrupt.h"
 #include "hardware/gpio.h"
 
 class RP2040_I2C_Bus: public I2C_Bus{
