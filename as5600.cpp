@@ -7,6 +7,7 @@
 
 #include "as5600.h"
 #include <stdlib.h>
+#include "hardware/clocks.h"
 //#include "printf.h"
 
 inline int16_t sign_extend_12bits(int16_t i){
@@ -16,9 +17,12 @@ inline int16_t sign_extend_12bits(int16_t i){
 
 int16_t AS5600_Device::read_magnitude(){
 	uint8_t rx_bytes[2] = {0x00, 0x00};
-
 	this->start_transaction();
+
+
 	I2C_Status status = this->read_two_bytes(AS5600_Device::magnitude_reg,rx_bytes);
+
+
 	this->end_transaction();
 
 	int16_t magnitude = rx_bytes[1];
@@ -67,6 +71,9 @@ int16_t AS5600_Device::read_angle(){
 	raw_angle |= rx_bytes[0] << 8;
 	int16_t angle = sign_extend_12bits(raw_angle);
 
+
+	// This block adds about 15-20us
+
 	if(initialized){
 		if(this->flip_direction)
 			angle = this->zero_position - angle;
@@ -78,6 +85,7 @@ int16_t AS5600_Device::read_angle(){
 		_n_erroneous_readings += 1;
 	}
 
+	//End of block
 
 #ifdef AS5600_DEBUG
 	printf("Read AS5600 Read Angle. Retval:%d, RX:0x%04x, Angle:%d\r\n",status,raw_angle, angle);

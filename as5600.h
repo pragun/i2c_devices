@@ -21,7 +21,7 @@ namespace AS5600 {
 	constexpr uint32_t timeout = 10;
 }
 
-class AS5600_Device : public I2C_Device {
+class AS5600_Device : public I2C_Device{
 public:
 	enum Magnet_Status{
 			Magnet_OK,
