@@ -5,8 +5,8 @@
  *      Author: Pragun
  */
 
-#ifndef SRC_AS5600_H_
-#define SRC_AS5600_H_
+#ifndef __AS5600
+#define __AS5600
 
 #include "i2c.h"
 #include "i2c_bus.h"
@@ -17,9 +17,9 @@
 
 
 namespace AS5600 {
-	constexpr uint8_t address = 0b0110110;
+	const  uint8_t address = 0b0110110;
 	constexpr uint32_t timeout = 10;
-}
+};
 
 class AS5600_Device : public I2C_Device{
 public:

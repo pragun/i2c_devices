@@ -77,6 +77,12 @@ public:
 		return this->write_n_then_read_m(&reg,1,rx_buf,1);
 	}
 
+	I2C_Status write_one_byte(uint8_t reg, const uint8_t tx){
+		uint8_t tx_bytes[2] = {reg, tx};
+		return this->write_n_then_read_m(tx_bytes,2,tx_bytes,0);
+	}
+
+
 	uint32_t _n_errors = 0;
 	uint32_t _n_aborts = 0;
 	uint32_t _n_timeouts = 0;
