@@ -29,8 +29,8 @@ public:
 		return I2C_OK;
 	}
 
-	I2C_Status write_n_then_read_m(uint8_t* tx, uint8_t txn, uint8_t* rx, uint8_t rxn){
-		I2C_Status _status = this->bus_root->write_n_then_read_m(this->address,tx,txn,rx,rxn,true,false,default_timeout);
+	I2C_Status write_n_then_read_m(uint8_t* tx, uint8_t txn, uint8_t* rx, uint8_t rxn, bool repeated_start, bool stop_at_end){
+		I2C_Status _status = this->bus_root->write_n_then_read_m(this->address,tx,txn,rx,rxn,repeated_start,stop_at_end,default_timeout);
 
 		switch(_status){
 			case I2C_Error:
@@ -69,19 +69,26 @@ public:
 		return this->bus_root;
 	}
 
+	I2C_Status write_n_bytes(uint8_t* tx_buf, uint8_t n){
+		return this->write_n_then_read_m(tx_buf,n,tx_buf,0,true,true);
+	}
+
+	I2C_Status read_n_bytes(uint8_t reg, uint8_t* rx_buf, uint8_t n){
+		return this->write_n_then_read_m(&reg,1,rx_buf,n,true,true);
+	}
+
 	I2C_Status read_two_bytes(uint8_t reg, uint8_t* rx_buf){
-		return this->write_n_then_read_m(&reg,1,rx_buf,2);
+		return this->write_n_then_read_m(&reg,1,rx_buf,2,true,true);
 	}
 
 	I2C_Status read_one_byte(uint8_t reg, uint8_t* rx_buf){
-		return this->write_n_then_read_m(&reg,1,rx_buf,1);
+		return this->write_n_then_read_m(&reg,1,rx_buf,1,true,true);
 	}
 
 	I2C_Status write_one_byte(uint8_t reg, const uint8_t tx){
 		uint8_t tx_bytes[2] = {reg, tx};
-		return this->write_n_then_read_m(tx_bytes,2,tx_bytes,0);
+		return this->write_n_then_read_m(tx_bytes,2,tx_bytes,0,false,true);
 	}
-
 
 	uint32_t _n_errors = 0;
 	uint32_t _n_aborts = 0;
