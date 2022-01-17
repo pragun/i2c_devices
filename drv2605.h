@@ -68,12 +68,14 @@ public:
 		initialized(false)
 		{}
 
-	I2C_Status init();
+	I2C_Status init(float rv, float od_v);
 	I2C_Status set_mode(uint8_t mode);
 	I2C_Status set_waveform(uint8_t slot, uint8_t w);
 	I2C_Status select_library(uint8_t lib);
 	I2C_Status go();
 	I2C_Status stop();
+	I2C_Status set_overdrive_voltage();
+	I2C_Status set_rated_voltage();
 
 private:
 	//I2C_Status set_actuator_type(ActuatorType ac_type);
