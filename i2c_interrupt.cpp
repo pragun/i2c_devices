@@ -12,7 +12,7 @@ TaskHandle_t* i2c_task_handles[NUM_I2C_PERIPHERALS] = {nullptr,nullptr};
 void _handler_i2c0() {
 	// Get interrupt status
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	irq_set_enabled(I2C1_IRQ, false);
+	irq_set_enabled(I2C0_IRQ, false);
 
 	uint32_t status = i2c0->hw->intr_stat;
 
@@ -151,9 +151,9 @@ I2C_Status I2C_Interrupt_Master::write_n_then_read_m(uint8_t addr, const uint8_t
 	TickType_t timeout_ticks = (timeout_ms == 0 ? portMAX_DELAY : timeout_ms);
 
 	int ilen = (int)src_len;
-	for (byte_ctr = 0; byte_ctr < ilen; ++byte_ctr) {
-		bool first = byte_ctr == 0;
-		bool last = byte_ctr == ilen - 1;
+	for (byte_ctr = ilen-1; byte_ctr >= 0; --byte_ctr) {
+		bool last = byte_ctr == 0;
+		bool first = byte_ctr == ilen - 1;
 
 		i2c->hw->data_cmd =
 				bool_to_bit(first && i2c->restart_on_next) << I2C_IC_DATA_CMD_RESTART_LSB |
@@ -198,9 +198,9 @@ I2C_Status I2C_Interrupt_Master::write_n_then_read_m(uint8_t addr, const uint8_t
 	i2c->restart_on_next = true;
 
 	ilen = (int)dest_len;
-	for (byte_ctr = 0; byte_ctr < ilen; ++byte_ctr) {
-		bool first = byte_ctr == 0;
-		bool last = byte_ctr == ilen - 1;
+	for (byte_ctr = ilen-1; byte_ctr >= 0; --byte_ctr) {
+		bool last = byte_ctr == 0;
+		bool first = byte_ctr == ilen - 1;
 		//while (!i2c_get_write_available(i2c))
 		//	tight_loop_contents();
 
@@ -229,7 +229,8 @@ I2C_Status I2C_Interrupt_Master::write_n_then_read_m(uint8_t addr, const uint8_t
 
 		asm("nop;");
 
-		*dest++ = (uint8_t) i2c->hw->data_cmd;
+		dest[byte_ctr] = (uint8_t) i2c->hw->data_cmd;
+		//*dest++ = (uint8_t) i2c->hw->data_cmd;
 
 	}
 

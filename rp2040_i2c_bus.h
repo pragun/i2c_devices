@@ -26,24 +26,23 @@ public:
 		scl_pin(scl_pin),
 		sda_pin(sda_pin),
 		_bus_root(bus_root){
-	}
+	};
 
 	I2C_Status start_transaction(){
 		gpio_set_function(this->scl_pin, GPIO_FUNC_I2C);
 		gpio_set_function(this->sda_pin, GPIO_FUNC_I2C);
 		return I2C_Status::I2C_OK;
-
-	}
+	};
 
 	I2C_Status end_transaction(){
 		gpio_set_function(this->scl_pin, GPIO_FUNC_SIO);
 		gpio_set_function(this->sda_pin, GPIO_FUNC_SIO);
 		return I2C_Status::I2C_OK;
-	}
+	};
 
 	I2C_Bus_Root* bus_root(){
 		return _bus_root;
-	}
+	};
 
 private:
 	uint scl_pin;
