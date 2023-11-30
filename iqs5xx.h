@@ -1,14 +1,11 @@
-
-#ifndef __AS5600
-#define __AS5600
-
+#pragma once
 #include "i2c.h"
 #include "i2c_bus.h"
 #include "i2c_device.h"
 
 
 #define CHECK_BIT(a,i) ((a & (0b1 << i)) != 0)
-
+#define READ_CYCLE_TIME //For now this seems important for the IQS5XX to work properly
 
 namespace IQS5XX {
 	const uint8_t address = 0b1110100;
@@ -43,10 +40,40 @@ public:
         uint16_t y;
     };
 
-    uint8_t num_touches;
+    uint16_t num_touches;
     touch_xy_t touch_xy[IQS5XX::MaxTouches];
+    uint16_t cycle_time = 0;
+
+    I2C_Status ReadTouchData(){
+        uint8_t end_comm[3] = {0xEE,0xEE,0xEE};
+        uint16_t addr = 0;
+        uint16_t naddr = 0;
+        I2C_Status drv_status;
+        num_touches = 0;
+        //this->start_transaction();
+
+#ifdef READ_CYCLE_TIME
+        drv_status = this->write_n_then_read_m((uint8_t*) &IQS5XX::PrevCycleTime,2,(uint8_t*) &cycle_time,1,true,true);
+#endif
+        drv_status = this->write_n_then_read_m((uint8_t*) &IQS5XX::NumFingers,2,(uint8_t*) &num_touches,1,true,true);
+        if((num_touches <= 5) && (num_touches >= 1)){
+            for(uint8_t i = 0; i<num_touches; i++){
+                addr = IQS5XX::FingerStartingMem[i] + IQS5XX::AbsoluteX_Base;
+                naddr = (addr & 0xFF00) >> 8;
+                naddr |= (addr & 0x00FF) << 8;
+                drv_status = this->write_n_then_read_m((uint8_t*) &addr,2,(uint8_t*) &touch_xy[i].x,2,true,true);
+
+                addr = IQS5XX::FingerStartingMem[i] + IQS5XX::AbsoluteY_Base;
+                naddr = (addr & 0xFF00) >> 8;
+                naddr |= (addr & 0x00FF) << 8;
+                drv_status = this->write_n_then_read_m((uint8_t*) &addr,2,(uint8_t*) &touch_xy[i].y,2,true,true);
+            }
+        }
+        drv_status = this->write_n_bytes(end_comm,3);
+        //this->end_transaction();
+
+        return drv_status;
+    };
 
 private:
 };
-
-#endif /* SRC_AS5600_H_ */
