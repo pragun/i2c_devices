@@ -20,13 +20,24 @@ namespace IQS5XX {
 	const uint32_t timeout = 10;
     const uint8_t MaxTouches = 5;
     const uint16_t PrevCycleTime = 0x000C;
+    const uint16_t GestureEvt0 = 0x000D;
+    const uint16_t GestureEvt1 = 0x000E;
+    const uint16_t SysInfo0 = 0x000F;
+    const uint16_t SysInfo1 = 0x0010;
     const uint16_t NumFingers = 0x0011;
+    const uint16_t Relative_X = 0x0012;
+    const uint16_t Relative_Y = 0x0014;
     const uint16_t AbsoluteX_Base = 0x0016;	//(READ) 2 BYTES	//ADD 0x0007 FOR FINGER 2; 0x000E FOR FINGER 3; 0x0015 FOR FINGER 4 AND 0x001C FOR FINGER 5
     const uint16_t AbsoluteY_Base = 0x0018;	//(READ) 2 BYTES	//ADD 0x0007 FOR FINGER 2; 0x000E FOR FINGER 3; 0x0015 FOR FINGER 4 AND 0x001C FOR FINGER 5	 
     const uint16_t TouchStrength_Base = 0x001A;	//(READ) 2 BYTES	//ADD 0x0007 FOR FINGER 2; 0x000E FOR FINGER 3; 0x0015 FOR FINGER 4 AND 0x001C FOR FINGER 5
     const uint16_t Area_Base = 0x001C;	//(READ)			//ADD 0x0007 FOR FINGER 2; 0x000E FOR FINGER 3; 0x0015 FOR FINGER 4 AND 0x001C FOR FINGER 5
     const uint16_t FingerStartingMem[MaxTouches] = {0x0, 0x0007, 0x000E, 0x0015, 0x001C};
     const uint16_t EndCommunication = 0xEEEE;
+    const uint16_t SysConfig0 = 0x058E;
+    const uint16_t SysConfig1 = 0x058F;
+    const uint16_t SingleFingerGestures = 0x06B7;
+    const uint16_t MultiFingerGestures = 0x06B8;
+    const uint16_t ActiveReportRate = 0x057A;
 };
 
 class IQS5XX_Device : public I2C_Device{
@@ -46,6 +57,17 @@ public:
     touch_xy_t touch_xy[IQS5XX::MaxTouches];
     uint16_t cycle_time = 0;
     uint32_t last_read_time = 0;
+    int16_t relative_x;
+    int16_t relative_y;
+    uint8_t sysinfo0;
+    uint8_t sysinfo1;
+    uint8_t gesture_evt0;
+    uint8_t gesture_evt1;
+    uint8_t sys_config0;
+    uint8_t sys_config1;
+    uint16_t active_report_rate;
+    uint8_t single_finger_gestures_config;
+    uint8_t multi_finger_gestures_config;
 
     inline I2C_Status ReadTwoBytes(uint16_t addr, uint8_t* data){
         I2C_Status drv_status;
@@ -56,28 +78,6 @@ public:
     inline I2C_Status ReadByte(uint16_t addr, uint8_t* data){
         I2C_Status drv_status;
         drv_status = this->write_n_then_read_m((uint8_t*) &addr,2,(uint8_t*) data,1,true,true);
-        return drv_status;
-    };
-
-    I2C_Status ReadDataAlt(){
-        uint8_t end_comm[3] = {0xEE,0xEE,0xEE};
-        uint16_t addr = 0;
-        uint16_t naddr = 0;
-        I2C_Status drv_status;
-        num_touches = 0;
-        //this->start_transaction();
-        last_read_time = time_us_32();
-        uint8_t data[64];
-        uint8_t n = 46;
-        uint16_t reg = IQS5XX::PrevCycleTime;
-
-        for(uint8_t i = 0; i<n; i++){
-            drv_status = this->write_n_then_read_m((uint8_t*) &reg, 2, &(data[i]), 1 ,true,true);
-            printf("%x ",data[i]);
-            reg ++;
-        }
-        printf("\n");
-
         return drv_status;
     };
 
@@ -108,6 +108,14 @@ public:
 #ifdef READ_CYCLE_TIME
         drv_status = ReadByte(IQS5XX::PrevCycleTime,(uint8_t*) &cycle_time);
 #endif
+        drv_status = ReadByte(IQS5XX::SysInfo0,(uint8_t*) &sysinfo0);
+        drv_status = ReadByte(IQS5XX::SysInfo1,(uint8_t*) &sysinfo1);
+        drv_status = ReadByte(IQS5XX::GestureEvt0,(uint8_t*) &gesture_evt0);
+        drv_status = ReadByte(IQS5XX::GestureEvt1,(uint8_t*) &gesture_evt1);
+
+        drv_status = ReadByte(IQS5XX::Relative_X, (uint8_t*) &relative_x);
+        drv_status = ReadByte(IQS5XX::Relative_Y, (uint8_t*) &relative_y);
+
         drv_status = ReadByte(IQS5XX::NumFingers,(uint8_t*) &num_touches);
         if((num_touches <= 5) && (num_touches >= 1)){
             for(uint8_t i = 0; i<num_touches; i++){
@@ -116,10 +124,69 @@ public:
         }
 
         drv_status = this->write_n_bytes(end_comm,3);
+
         //this->end_transaction();
 
         return drv_status;
     };
+
+    /*
+    I2C_Status Config(){
+        I2C_Status drv_status;
+
+        drv_status = ReadByte(IQS5XX::SingleFingerGestures, &single_finger_gestures_config);
+        printf("SingleFingerGestures: %x\n",single_finger_gestures_config);
+
+        drv_status = ReadByte(IQS5XX::MultiFingerGestures, &multi_finger_gestures_config);
+        printf("MultiFingerGestures: %x\n",multi_finger_gestures_config);
+
+
+        sleep_ms(10);
+        uint8_t data2[3] = {0x06, 0xB7, 0x00};
+        drv_status = this->write_n_bytes(data2,3);
+
+        sleep_ms(1);
+        uint8_t data3[3] = {0x06, 0xB8, 0x00};
+        drv_status = this->write_n_bytes(data3,3);
+
+        sleep_ms(10);
+        drv_status = ReadByte(IQS5XX::SingleFingerGestures, &single_finger_gestures_config);
+        printf("SingleFingerGestures: %x\n",single_finger_gestures_config);
+
+        drv_status = ReadByte(IQS5XX::MultiFingerGestures, &multi_finger_gestures_config);
+        printf("MultiFingerGestures: %x\n",multi_finger_gestures_config);
+
+        sleep_ms(10);
+        drv_status = ReadByte(IQS5XX::SingleFingerGestures, &single_finger_gestures_config);
+        printf("SingleFingerGestures: %x\n",single_finger_gestures_config);
+
+        drv_status = ReadByte(IQS5XX::MultiFingerGestures, &multi_finger_gestures_config);
+        printf("MultiFingerGestures: %x\n",multi_finger_gestures_config);
+
+
+        drv_status = ReadByte(IQS5XX::SysConfig0, &sys_config0);
+        drv_status = ReadByte(IQS5XX::SysConfig1, &sys_config1);
+        printf("SysConfig: %x %x\n",sys_config0, sys_config1);
+
+        sys_config1 = 0x85;
+        uint8_t data[3] = {0x05, 0x8F, sys_config1};
+        drv_status = this->write_n_bytes(data,3);
+
+        sleep_ms(10);
+        drv_status = ReadByte(IQS5XX::SysConfig0, &sys_config0);
+        drv_status = ReadByte(IQS5XX::SysConfig1, &sys_config1);
+        printf("SysConfig: %x %x\n",sys_config0, sys_config1);
+
+        sleep_ms(10);
+        drv_status = ReadByte(IQS5XX::SysConfig0, &sys_config0);
+        drv_status = ReadByte(IQS5XX::SysConfig1, &sys_config1);
+        printf("SysConfig: %x %x\n",sys_config0, sys_config1);
+
+        drv_status = ReadTwoBytes(IQS5XX::ActiveReportRate, (uint8_t*) &active_report_rate);
+        printf("ActiveReportRate: %d\n",active_report_rate);
+
+        return drv_status;
+    }; */
 
 private:
 };
