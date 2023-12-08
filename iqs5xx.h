@@ -9,6 +9,8 @@
 
 extern uint32_t time_us_32();
 
+#define CHK(A) if(A != I2C_OK){return A;}
+
 namespace IQS5XX {
 	const uint8_t address = 0b1110100;
 
@@ -86,12 +88,15 @@ public:
         I2C_Status drv_status;
         addr = IQS5XX::FingerStartingMem[i] + IQS5XX::AbsoluteX_Base;
         drv_status = ReadTwoBytes(addr,(uint8_t*) &touch_xy.x);
+        CHK(drv_status);
 
         addr = IQS5XX::FingerStartingMem[i] + IQS5XX::AbsoluteY_Base;
         drv_status = ReadTwoBytes(addr,(uint8_t*) &touch_xy.y);
+        CHK(drv_status);
 
         addr = IQS5XX::FingerStartingMem[i] + IQS5XX::TouchStrength_Base;
         drv_status = ReadTwoBytes(addr,(uint8_t*) &touch_xy.strength);
+        CHK(drv_status);
 
         addr = IQS5XX::FingerStartingMem[i] + IQS5XX::Area_Base;
         drv_status = ReadByte(addr,(uint8_t*) &touch_xy.area);
@@ -107,16 +112,29 @@ public:
         last_read_time = time_us_32();
 #ifdef READ_CYCLE_TIME
         drv_status = ReadByte(IQS5XX::PrevCycleTime,(uint8_t*) &cycle_time);
+        CHK(drv_status);
 #endif
         drv_status = ReadByte(IQS5XX::SysInfo0,(uint8_t*) &sysinfo0);
+        CHK(drv_status);
+
         drv_status = ReadByte(IQS5XX::SysInfo1,(uint8_t*) &sysinfo1);
+        CHK(drv_status);
+
         drv_status = ReadByte(IQS5XX::GestureEvt0,(uint8_t*) &gesture_evt0);
+        CHK(drv_status);
+
         drv_status = ReadByte(IQS5XX::GestureEvt1,(uint8_t*) &gesture_evt1);
+        CHK(drv_status);
 
         drv_status = ReadByte(IQS5XX::Relative_X, (uint8_t*) &relative_x);
+        CHK(drv_status);
+
         drv_status = ReadByte(IQS5XX::Relative_Y, (uint8_t*) &relative_y);
+        CHK(drv_status);
 
         drv_status = ReadByte(IQS5XX::NumFingers,(uint8_t*) &num_touches);
+        CHK(drv_status);
+
         if((num_touches <= 5) && (num_touches >= 1)){
             for(uint8_t i = 0; i<num_touches; i++){
                 ReadSingleTouchData(i,touch_xy[i]);
@@ -124,7 +142,9 @@ public:
         }
 
         drv_status = this->write_n_bytes(end_comm,3);
+        CHK(drv_status);
 
+        _n_successes ++;
         //this->end_transaction();
 
         return drv_status;

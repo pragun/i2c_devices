@@ -90,11 +90,47 @@ public:
 		return this->write_n_then_read_m(tx_bytes,2,tx_bytes,0,false,true);
 	}
 
+    void reset_stats(){
+        _n_errors = 0;
+        _n_aborts = 0;
+        _n_timeouts = 0;
+        _n_successes = 0;
+        _n_transactions = 0;
+    }
+
+    void update_stats(){
+        auto t = time_us_32();
+        auto tdiff = (t - stats_time_last_us) + 1;
+        _n_errors_rate = (_n_errors - _n_errors_last) * 1000000 / tdiff;
+        _n_aborts_rate = (_n_aborts - _n_aborts_last) * 1000000 / tdiff;
+        _n_timeouts_rate = (_n_timeouts - _n_timeouts_last) * 1000000 / tdiff;
+        _n_successes_rate = (_n_successes - _n_successes_last) * 1000000 / tdiff;
+
+        _n_errors_last = _n_errors;
+        _n_aborts_last = _n_aborts;
+        _n_timeouts_last = _n_timeouts;
+        _n_successes_last = _n_successes;
+
+        stats_time_last_us = time_us_32();
+    }
+
 	uint32_t _n_errors = 0;
 	uint32_t _n_aborts = 0;
 	uint32_t _n_timeouts = 0;
-	uint32_t _n_transactions = 0;
+    uint32_t _n_successes = 0;
 
+    uint32_t _n_errors_last = 0;
+    uint32_t _n_aborts_last = 0;
+    uint32_t _n_timeouts_last = 0;
+    uint32_t _n_successes_last = 0;
+
+    uint32_t _n_errors_rate = 0;
+    uint32_t _n_aborts_rate = 0;
+    uint32_t _n_timeouts_rate = 0;
+    uint32_t _n_successes_rate = 0;
+
+    uint32_t stats_time_last_us = 0;
+    uint32_t _n_transactions = 0;
 
 private:
 	uint32_t default_timeout;
