@@ -29,7 +29,7 @@ void _handler_i2c1() {
 	// Get interrupt status
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	irq_set_enabled(I2C1_IRQ, false);
-	//uint32_t status = i2c1->hw->intr_stat;
+	uint32_t status = i2c1->hw->intr_stat;
 	//i2c1->hw->clr_rd_req;
 
 	if(i2c_task_handles[1] != nullptr){

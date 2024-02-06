@@ -70,6 +70,8 @@ public:
     uint16_t active_report_rate;
     uint8_t single_finger_gestures_config;
     uint8_t multi_finger_gestures_config;
+    uint32_t last_x = 0;
+    uint32_t last_y = 0;
 
     inline I2C_Status ReadTwoBytes(uint16_t addr, uint8_t* data){
         I2C_Status drv_status;
