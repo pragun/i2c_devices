@@ -58,7 +58,9 @@ public:
     uint16_t num_touches;
     touch_xy_t touch_xy[IQS5XX::MaxTouches];
     uint16_t cycle_time = 0;
-    uint32_t last_read_time = 0;
+    uint32_t last_read_at_time = 0;
+    uint32_t time_taken_to_complete_last_read = 0;
+
     int16_t relative_x;
     int16_t relative_y;
     uint8_t sysinfo0;
@@ -111,7 +113,7 @@ public:
         I2C_Status drv_status;
         num_touches = 0;
         //this->start_transaction();
-        last_read_time = time_us_32();
+        uint32_t t1 = time_us_32();
 #ifdef READ_CYCLE_TIME
         drv_status = ReadByte(IQS5XX::PrevCycleTime,(uint8_t*) &cycle_time);
         CHK(drv_status);
@@ -148,7 +150,8 @@ public:
 
         _n_successes ++;
         //this->end_transaction();
-
+        last_read_at_time = time_us_32();
+        time_taken_to_complete_last_read = last_read_at_time - t1;
         return drv_status;
     };
 
