@@ -48,10 +48,10 @@ namespace IQS5XX {
 };
 
 struct IQS5XXHWConfig{
-    uint i2c_sda_touchpad;
-    uint i2c_scl_touchpad;
-    uint touchpad_nrst;
-    uint touchpad_rdy;
+    uint sda;
+    uint scl;
+    uint nrst;
+    uint rdy;
     uint8_t timeout_ms;
     char name[8];
     uint8_t debug_level;
@@ -65,32 +65,32 @@ private:
 public:
 	IQS5XX_Device(const IQS5XXHWConfig* hw_config, I2C_Interrupt_Master* i2c_interrupt1):
         hw_config_(hw_config),
-        i2c_bus_(hw_config->i2c_scl_touchpad, hw_config->i2c_sda_touchpad, i2c_interrupt1),
+        i2c_bus_(hw_config->scl, hw_config->sda, i2c_interrupt1),
 		I2C_Device(IQS5XX::address, (uint32_t) hw_config->timeout_ms)
     {
         this->set_bus(&i2c_bus_);
-        gpio_set_function(hw_config_->i2c_sda_touchpad,GPIO_FUNC_I2C);
-        gpio_set_function(hw_config_->i2c_scl_touchpad,GPIO_FUNC_I2C);
+        gpio_set_function(hw_config_->sda, GPIO_FUNC_I2C);
+        gpio_set_function(hw_config_->scl, GPIO_FUNC_I2C);
 
-        gpio_set_function(hw_config_->touchpad_rdy,GPIO_FUNC_SIO);
-        gpio_set_dir(hw_config_->touchpad_rdy, false);
+        gpio_set_function(hw_config_->rdy, GPIO_FUNC_SIO);
+        gpio_set_dir(hw_config_->rdy, false);
 
 
-        gpio_set_function(hw_config_->touchpad_nrst,GPIO_FUNC_SIO);
-        gpio_set_drive_strength(hw_config_->touchpad_nrst, GPIO_DRIVE_STRENGTH_8MA);
-        gpio_set_dir(hw_config_->touchpad_nrst, true);
-        gpio_put(hw_config_->touchpad_nrst,true);
+        gpio_set_function(hw_config_->nrst, GPIO_FUNC_SIO);
+        gpio_set_drive_strength(hw_config_->nrst, GPIO_DRIVE_STRENGTH_8MA);
+        gpio_set_dir(hw_config_->nrst, true);
+        gpio_put(hw_config_->nrst, true);
 
-        gpio_set_irq_enabled(hw_config_->touchpad_rdy, GPIO_IRQ_EDGE_RISE, true);
+        gpio_set_irq_enabled(hw_config_->rdy, GPIO_IRQ_EDGE_RISE, true);
 
     #ifdef USE_INTERRUPTS_FOR_TRACKPAD
-        gpio_set_irq_enabled(hw_config_->touchpad_rdy, GPIO_IRQ_EDGE_RISE, true);
+        gpio_set_irq_enabled(hw_config_->rdy, GPIO_IRQ_EDGE_RISE, true);
     #endif
                 //gpio_set_irq_enabled(hw_config_->key, GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL, true);
 
         bi_decl(bi_2pins_with_func(
-                hw_config_->i2c_sda_touchpad,
-                hw_config_->i2c_scl_touchpad,
+                hw_config_->sda,
+                hw_config_->scl,
                 GPIO_FUNC_I2C));
 
     };
@@ -136,9 +136,9 @@ public:
     };
 
     void Reset(){
-        gpio_put(hw_config_->touchpad_nrst,false);
+        gpio_put(hw_config_->nrst, false);
         sleep_ms(1);
-        gpio_put(hw_config_->touchpad_nrst,true);
+        gpio_put(hw_config_->nrst, true);
         sleep_ms(1);
     }
 
