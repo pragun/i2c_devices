@@ -1,8 +1,13 @@
 #pragma once
+#include "hardware/i2c.h"
+
 #include "i2c.h"
 #include "i2c_bus.h"
 #include "i2c_device.h"
 
+#include "rp2040_i2c_bus.h"
+#include "i2c_interrupt.h"
+#include "i2c_bus.h"
 
 #define CHECK_BIT(a,i) ((a & (0b1 << i)) != 0)
 #define READ_CYCLE_TIME //For now this seems important for the IQS5XX to work properly
@@ -42,11 +47,53 @@ namespace IQS5XX {
     const uint16_t ActiveReportRate = 0x057A;
 };
 
+struct IQS5XXHWConfig{
+    uint i2c_sda_touchpad;
+    uint i2c_scl_touchpad;
+    uint touchpad_nrst;
+    uint touchpad_rdy;
+    uint8_t timeout_ms;
+    char name[8];
+    uint8_t debug_level;
+};
+
 class IQS5XX_Device : public I2C_Device{
+private:
+    const IQS5XXHWConfig* hw_config_;
+    RP2040_I2C_Bus i2c_bus_;
+
 public:
-	IQS5XX_Device(I2C_Bus* i2c_bus, uint32_t default_timeout_ms):
-		I2C_Device(i2c_bus, IQS5XX::address, default_timeout_ms)
-		{};
+	IQS5XX_Device(const IQS5XXHWConfig* hw_config, I2C_Interrupt_Master* i2c_interrupt1):
+        hw_config_(hw_config),
+        i2c_bus_(hw_config->i2c_scl_touchpad, hw_config->i2c_sda_touchpad, i2c_interrupt1),
+		I2C_Device(IQS5XX::address, (uint32_t) hw_config->timeout_ms)
+    {
+        this->set_bus(&i2c_bus_);
+        gpio_set_function(hw_config_->i2c_sda_touchpad,GPIO_FUNC_I2C);
+        gpio_set_function(hw_config_->i2c_scl_touchpad,GPIO_FUNC_I2C);
+
+        gpio_set_function(hw_config_->touchpad_rdy,GPIO_FUNC_SIO);
+        gpio_set_dir(hw_config_->touchpad_rdy, false);
+
+
+        gpio_set_function(hw_config_->touchpad_nrst,GPIO_FUNC_SIO);
+        gpio_set_drive_strength(hw_config_->touchpad_nrst, GPIO_DRIVE_STRENGTH_8MA);
+        gpio_set_dir(hw_config_->touchpad_nrst, true);
+        gpio_put(hw_config_->touchpad_nrst,true);
+
+        gpio_set_irq_enabled(hw_config_->touchpad_rdy, GPIO_IRQ_EDGE_RISE, true);
+
+    #ifdef USE_INTERRUPTS_FOR_TRACKPAD
+        gpio_set_irq_enabled(hw_config_->touchpad_rdy, GPIO_IRQ_EDGE_RISE, true);
+    #endif
+                //gpio_set_irq_enabled(hw_config_->key, GPIO_IRQ_EDGE_RISE|GPIO_IRQ_EDGE_FALL, true);
+
+        bi_decl(bi_2pins_with_func(
+                hw_config_->i2c_sda_touchpad,
+                hw_config_->i2c_scl_touchpad,
+                GPIO_FUNC_I2C));
+
+    };
 
     struct touch_xy_t{
         uint16_t x;
@@ -74,6 +121,7 @@ public:
     uint8_t multi_finger_gestures_config;
     uint32_t last_x = 0;
     uint32_t last_y = 0;
+    char name_[8];
 
     inline I2C_Status ReadTwoBytes(uint16_t addr, uint8_t* data){
         I2C_Status drv_status;
@@ -86,6 +134,38 @@ public:
         drv_status = this->write_n_then_read_m((uint8_t*) &addr,2,(uint8_t*) data,1,true,true);
         return drv_status;
     };
+
+    void Reset(){
+        gpio_put(hw_config_->touchpad_nrst,false);
+        sleep_ms(1);
+        gpio_put(hw_config_->touchpad_nrst,true);
+        sleep_ms(1);
+    }
+
+    void debug_touch_read(I2C_Status drv_status){
+
+        if(drv_status == I2C_OK) {
+            if(num_touches > 0) {
+                int8_t xdiff = (touch_xy[0].x - last_x);
+                int8_t ydiff = (touch_xy[0].y - last_y);
+
+                if (hw_config_->debug_level == 1) {
+                    printf("%s X:%d Y:%d S:%d A:%d XDiff:%d, YDiff:%d TimeToRead:%d\n",
+                           hw_config_->name,
+                           touch_xy[0].x, touch_xy[0].y,
+                           touch_xy[0].strength, touch_xy[0].area,
+                           xdiff, ydiff, time_taken_to_complete_last_read);
+                }
+                last_x = touch_xy[0].x;
+                last_y = touch_xy[0].y;
+            }
+        }else{
+            if(hw_config_->debug_level == 1) {
+                printf("Touchpad Read Error\n");
+            }
+            //leftPaddle_ptr->ResetTouchPad();
+        }
+    }
 
     I2C_Status ReadSingleTouchData(uint8_t i, touch_xy_t& touch_xy){
         uint16_t addr = 0;
@@ -104,6 +184,10 @@ public:
 
         addr = IQS5XX::FingerStartingMem[i] + IQS5XX::Area_Base;
         drv_status = ReadByte(addr,(uint8_t*) &touch_xy.area);
+
+        if(hw_config_->debug_level == 1){
+            debug_touch_read(drv_status);
+        }
         return drv_status;
     }
 
@@ -154,6 +238,25 @@ public:
         time_taken_to_complete_last_read = last_read_at_time - t1;
         return drv_status;
     };
+
+    void print_detailed_debug_output(){
+        /* printf("Sys:%x %x Ges:%x %x CTim:%d NTch:%d RX:%d, RY:%d, I2CTim: %dus LastRead: %dus",
+             leftTouchpad.sysinfo0,leftTouchpad.sysinfo1,
+             leftTouchpad.gesture_evt0,leftTouchpad.gesture_evt1,
+             leftTouchpad.cycle_time,
+             leftTouchpad.num_touches,
+             leftTouchpad.relative_x, leftTouchpad.relative_y,
+             i2c_time, time_between_reads);
+
+
+      if((leftTouchpad.num_touches <= 5) && (leftTouchpad.num_touches >= 1)){
+          for(uint8_t i = 0; i<leftTouchpad.num_touches; i++){
+              printf("Finger:%d X:%d Y:%d A:%d S:%d \n",
+                     i,leftTouchpad.touch_xy[i].x,leftTouchpad.touch_xy[i].y,
+                     leftTouchpad.touch_xy[i].area, leftTouchpad.touch_xy[i].strength);
+          }
+      }*/
+    }
 
     /*
     I2C_Status Config(){

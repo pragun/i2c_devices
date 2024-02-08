@@ -21,6 +21,11 @@ public:
 		default_timeout(default_timeout)
 	{};
 
+    I2C_Device(uint8_t address, uint32_t default_timeout):
+            address(address),
+            default_timeout(default_timeout)
+    {};
+
 	I2C_Status write_n(){
 		return I2C_OK;
 	}
@@ -90,6 +95,11 @@ public:
 		return this->write_n_then_read_m(tx_bytes,2,tx_bytes,0,false,true);
 	}
 
+    void set_bus(I2C_Bus* i2c_bus){
+        this->i2c_bus = i2c_bus;
+        this->bus_root = i2c_bus->bus_root();
+    }
+
     void reset_stats(){
         _n_errors = 0;
         _n_aborts = 0;
@@ -134,9 +144,9 @@ public:
 
 private:
 	uint32_t default_timeout;
-	I2C_Bus *i2c_bus;
+	I2C_Bus *i2c_bus = nullptr;
 	uint8_t address;
-	I2C_Bus_Root *bus_root;
+	I2C_Bus_Root *bus_root = nullptr;
 	bool transaction_started = false;
 };
 
