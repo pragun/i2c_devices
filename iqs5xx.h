@@ -119,9 +119,11 @@ public:
     uint16_t active_report_rate;
     uint8_t single_finger_gestures_config;
     uint8_t multi_finger_gestures_config;
-    uint32_t last_x = 0;
-    uint32_t last_y = 0;
+    uint16_t last_x = 0;
+    uint16_t last_y = 0;
     char name_[8];
+
+    bool initialized_starting_position = false;
 
     inline I2C_Status ReadTwoBytes(uint16_t addr, uint8_t* data){
         I2C_Status drv_status;
@@ -142,8 +144,24 @@ public:
         sleep_ms(1);
     }
 
-    void debug_touch_read(I2C_Status drv_status){
+    bool report_touch_data(int8_t& xdiff, int8_t& ydiff){
+        bool valid = false;
+        if(num_touches == 0){
+            initialized_starting_position = false;
+        }else{
+            if(initialized_starting_position){
+                xdiff = (touch_xy[0].x - last_x);
+                ydiff = (touch_xy[0].y - last_y);
+                valid = true;
+            }
+            last_x = touch_xy[0].x;
+            last_y = touch_xy[0].y;
+            initialized_starting_position = true;
+        }
+        return valid;
+    }
 
+    void debug_touch_read(I2C_Status drv_status){
         if(drv_status == I2C_OK) {
             if(num_touches > 0) {
                 int8_t xdiff = (touch_xy[0].x - last_x);
